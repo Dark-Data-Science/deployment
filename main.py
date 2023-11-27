@@ -44,7 +44,7 @@ async def PlayTimeGenre(genero: str):
 
 
 
-df_horas_usuario = pd.read_parquet('Data/user_for_genero.parquet')
+df_horas_usuario = pd.read_parquet('Data/user_for_genero_mitad.parquet')
 
 @app.get("/UserForGenre/{genero}")
 async def UserForGenre(genero: str):
