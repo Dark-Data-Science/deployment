@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
-ruta_archivo = 'Data/TimeGenre.parquet'  # Reemplaza con la ruta a tu archivo
+ruta_archivo = 'Data/genero_play_time.parquet'  # Reemplaza con la ruta a tu archivo
 
 # Leer los datos en un dataframe
 horas_usuario = pd.read_parquet(ruta_archivo)
@@ -24,19 +24,19 @@ horas_usuario = pd.read_parquet(ruta_archivo)
 #   - Si no hay datos para el género especificado, se devuelve un mensaje indicando la ausencia de datos.
 #     Ejemplo: "No hay datos para el género 'Accion'."
 
+
+# Asegúrate de cargar tu DataFrame 'horas_usuario' aquí
+# Reemplaza esto con el código para cargar tu DataFrame
+
 @app.get("/PlayTimeGenre/{genero}")
 async def PlayTimeGenre(genero: str):
-    # Filtrar el dataframe por el género específico
-    df_genre = horas_usuario[horas_usuario['genres'] == genero]
-
-    # Si no hay datos para el género, devolver un mensaje indicando esto
-    if df_genre.empty:
-        return f"No hay datos para el género '{genero}'."
-
-    # Encontrar el año con más horas jugadas para el género específico
-    año_con_mas_horas = df_genre.groupby('Año_estreno')['playtime_forever'].sum().idxmax()
-
-    # Construir el mensaje con el año y el género
-    mensaje = f"Año de lanzamiento con más horas jugadas para Género '{genero}': {año_con_mas_horas}"
-
-    return mensaje
+    # Filtra el DataFrame por el género especificado
+    df_genero = horas_usuario[horas_usuario['genres'].str.contains(genero, na=False)]
+    
+    # Agrupa por 'Año_estreno' y suma el tiempo de juego
+    df_grouped = df_genero.groupby('Año_estreno')['playtime_forever'].sum()
+    
+    # Encuentra el año con el tiempo de juego más alto
+    max_playtime_year = df_grouped.idxmax()
+    
+    return {"Año con más horas jugadas para el género": genero, "Año": max_playtime_year}
