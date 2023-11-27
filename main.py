@@ -40,3 +40,35 @@ async def PlayTimeGenre(genero: str):
     max_playtime_year = df_grouped.idxmax()
     
     return {"Año con más horas jugadas para el género": genero, "Año": max_playtime_year}
+
+
+
+
+df_horas_usuario = pd.read_parquet('Data/ForGenre.parquet')
+
+@app.get("/UserForGenre/{genero}")
+async def UserForGenre(genero: str):
+    # Filtrar el dataframe por el género específico
+    df_genre = df_horas_usuario[df_horas_usuario['genres'] == genero]
+
+    # Si no hay datos para el género, devolver un mensaje indicando esto
+    if df_genre.empty:
+        return {"mensaje": f"No hay datos para el género '{genero}'."}
+
+    # Encontrar el usuario con más horas jugadas para el género específico
+    usuario_con_mas_horas = df_genre.groupby('user_id')['playtime_forever'].sum().idxmax()
+
+    # Crear una lista de la acumulación de horas jugadas por año
+    acumulacion_por_anio = df_genre.groupby('Año_estreno')['playtime_forever'].sum().reset_index()
+    acumulacion_por_anio = acumulacion_por_anio.rename(columns={"playtime_forever": "Horas"})
+    lista_acumulacion = acumulacion_por_anio.to_dict(orient='records')
+
+    # Crear la salida en forma de diccionario
+    salida = {
+        "Usuario con más horas jugadas para Género": usuario_con_mas_horas,
+        "Horas jugadas": lista_acumulacion
+    }
+
+    return salida
+
+
