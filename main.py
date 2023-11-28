@@ -111,3 +111,41 @@ async def UsersRecommend(anio: int):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Se produjo un error inesperado: {str(e)}")
+    
+
+
+
+df_recomendado = pd.read_parquet('Data/Recommend_Users2.parquet')
+
+
+
+@app.get('/UsersNotRecommend/{anio}')
+async def UsersNotRecommend(anio: int):
+    try:
+        # Filtrar por el año dado
+        df_year = df_recomendado[df_recomendado['Año_estreno'] == anio]
+
+        # Filtrar por juegos menos recomendados y comentarios negativos
+        df_not_recommendations = df_year[(df_year['recommend'] == False) & (df_year['sentiment_analisis'] == 0)]
+
+        # Verificar si hay datos para el año dado y los filtros especificados
+        if df_not_recommendations.empty:
+            raise HTTPException(status_code=404, detail=f"No hay datos de juegos menos recomendados para el año {anio} con los filtros especificados.")
+        
+        # Contar la cantidad de veces que aparece cada juego menos recomendado
+        juegos_menos_recomendados = df_not_recommendations['item_name'].value_counts().reset_index()
+        juegos_menos_recomendados.columns = ['item_name', 'count']
+
+        # Obtener el top 3 de juegos menos recomendados
+        top_juegos_menos_recomendados = juegos_menos_recomendados.nlargest(3, 'count')
+
+        # Crear la lista de salida en el formato deseado
+        resultado = [{"Puesto 1": top_juegos_menos_recomendados.iloc[0]['item_name']},
+                     {"Puesto 2": top_juegos_menos_recomendados.iloc[1]['item_name']},
+                     {"Puesto 3": top_juegos_menos_recomendados.iloc[2]['item_name']}]
+
+        return resultado
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Se produjo un error inesperado: {str(e)}")
+
