@@ -2,6 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 import pandas as pd
 from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException
 
 
 
@@ -74,39 +75,39 @@ async def UserForGenre(genero: str):
 
 
 
-recomendado_usuario = pd.read_parquet('Data/wortsRecommend.parquet')
-
-@app.get("/UsersRecommend/{año}")
-async def UsersRecommend(año: int):
-    # Convertir el año a string
-    año = str(año)
-
-    # Filtrar por el año dado
-    df_year = recomendado_usuario[recomendado_usuario['Año_estreno'] == año]
-
-    # Verificar si hay datos para el año dado
-    if df_year.empty:
-        return {"mensaje": f"No hay datos para el año {año}."}
-
-    # Filtrar por recomendaciones positivas y comentarios positivos/neutrales
-    df_recommendations = df_year[(df_year['recommend'] == True) & (df_year['sentiment_analisis'] >= 1)]
-
-    # Verificar si hay juegos recomendados para el año dado
-    if df_recommendations.empty:
-        return {"mensaje": f"No hay juegos recomendados para el año {año}."}
-
-    # Agrupar por el título del juego y sumar el 'sentiment_analisis'
-    grouped_games = df_recommendations.groupby('title')['sentiment_analisis'].sum()
-
-    # Obtener el top 3 de juegos más recomendados
-    top_3_games = grouped_games.nlargest(3)
-
-    # Crear la lista de salida en el formato deseado
-    output_list = []
-    for i in range(min(3, len(top_3_games))):
-        output_list.append({"Puesto {}".format(i+1): top_3_games.index[i]})
-
-    return {"resultados": output_list}
 
 
+recomendado = pd.read_parquet('Data/Recommend_Users2.parquet')
 
+@app.get('/UsersRecommend/{anio}')
+async def UsersRecommend(anio: int):
+    try:
+        # Filtrar por el año dado
+        df_year = recomendado[recomendado['Año_estreno'] == anio]
+
+        # Verificar si hay datos para el año dado
+        if df_year.empty:
+            raise HTTPException(status_code=404, detail=f"No hay datos para el año {anio}.")
+
+        # Filtrar por recomendaciones positivas y comentarios positivos/neutrales
+        df_recommendations = df_year[(df_year['recommend'] == True) & (df_year['sentiment_analisis'] >= 1)]
+
+        # Verificar si hay juegos recomendados para el año dado
+        if df_recommendations.empty:
+            raise HTTPException(status_code=404, detail=f"No hay juegos recomendados para el año {anio}.")
+
+        # Agrupar por el nombre del juego y sumar el 'sentiment_analisis'
+        grouped_games = df_recommendations.groupby('item_name')['sentiment_analisis'].sum()
+
+        # Obtener el top 3 de juegos más recomendados
+        top_3_games = grouped_games.nlargest(3)
+
+        # Crear la lista de salida en el formato deseado
+        output_list = [{"Puesto 1": top_3_games.index[0]},
+                       {"Puesto 2": top_3_games.index[1]},
+                       {"Puesto 3": top_3_games.index[2]}]
+
+        return output_list
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Se produjo un error inesperado: {str(e)}")
